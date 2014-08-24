@@ -9,6 +9,6 @@ package Crypt::SPKI::Keys::Public::Sign;
 use warnings;
 use strict;
 
-
+use Mojo::Base 'Crypt::SPKI::Key';
 
 1;
