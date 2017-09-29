@@ -58,13 +58,15 @@ sub from_hex {
 
 # a 64 byte wide base64 encoding
 sub b64_encode {
-    my ($self) = @_;
+    my ($self, $separator) = @_;
     my $e = encode_base64($self->to_string, '');
+
+    $separator = "\n" unless defined $separator;
 
     # 64 byte chunks
     my $encoded;
     while ($e =~ /(.{1,64})/og) {
-        $encoded .= "$1\n";
+        $encoded .= "$1$separator";
     }
 
     return __PACKAGE__->new($encoded);
@@ -83,15 +85,15 @@ sub decrypt {
 }
 
 sub sign {
-    my ($self, $se) = @_;
+    my ($self, $msg) = @_;
 
-    return __PACKAGE__->new(crypto_sign($self->to_string, $se->to_string));
+    return __PACKAGE__->new(crypto_sign($msg, $self->to_string));
 }
 
 sub sign_digest {
-    my ($self, $se) = @_;
+    my ($self, $msg) = @_;
 
-    return __PACKAGE__->new(crypto_sign(crypto_hash(crypto_hash($self->to_string)), $se->to_string));
+    return __PACKAGE__->new(crypto_sign(crypto_hash($msg), $self->to_string));
 }
 
 sub stream_xor {

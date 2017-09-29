@@ -28,6 +28,21 @@ sub new {
     }, $class; 
 }
 
+sub from_long_string {
+    my ($class, $string) = @_;
+    my $self = bless {}, $class;
+    
+    my $hr = bdecode(
+        Crypt::SPKI::ByteStream->new($string)->b64_decode->to_string,
+    );
+
+    $self->{enc} = "$class\::Enc"->new($hr->{$class}->{enc});
+    $self->{sign} = "$class\::Sign"->new($hr->{$class}->{sign});
+    $self->{extra} = $hr->{$class}->{extra} ? $hr->{$class}->{extra} : {};
+
+    return $self;
+}
+
 # must be instantiated with an ascii armor block.
 sub from_string {
     my ($class, $aa) = @_;
@@ -76,6 +91,23 @@ sub to_string {
     push(@aa, $self->aa_footer . "\n");
 
     return join('', @aa);
+}
+
+sub to_long_string {
+    my ($self, $extra) = @_;
+
+    my $hr = {
+        ref($self) => {
+            sign => $self->sign->to_hex->to_string,
+            enc => $self->enc->to_hex->to_string,
+        },
+    };
+    
+    if ($extra) {
+        $hr->{ref($self)}->{extra} = $extra;
+    }
+        
+    return Crypt::SPKI::ByteStream->new( bencode($hr) )->b64_encode('');
 }
 
 sub fingerprint {

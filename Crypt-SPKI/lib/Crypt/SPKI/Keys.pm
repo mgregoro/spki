@@ -21,6 +21,8 @@ use Crypt::SPKI::Keys::Secret;
 has aa_header => '----- BEGIN SOCIALPKI KEYPAIR -----';
 has aa_footer => '----- END SOCIALPKI KEYPAIR -----';
 
+has ['extra'];
+
 # this generates a new keypair!
 sub new {
     my ($class) = @_;
@@ -92,6 +94,38 @@ sub to_string {
     push(@aa, $self->aa_footer . "\n");
 
     return join('', @aa);
+}
+
+sub from_long_string {
+    my ($class, $string) = @_;
+    my $self = bless {}, $class;
+    
+    my $hr = bdecode(
+        Crypt::SPKI::ByteStream->new($string)->b64_decode->to_string,
+    );
+
+    $self->{enc} = "$class\::Enc"->new($hr->{$class}->{enc});
+    $self->{sign} = "$class\::Sign"->new($hr->{$class}->{sign});
+    $self->{extra} = $hr->{$class}->{extra} ? $hr->{$class}->{extra} : {};
+
+    return $self;
+}
+
+sub to_long_string {
+    my ($self, $extra) = @_;
+
+    my $hr = {};
+    foreach my $type (qw/Crypt::SPKI::Keys::Public Crypt::SPKI::Keys::Secret/) {
+        $hr->{$type} = {
+            enc => $self->{$type}->{enc}->to_hex->to_string,
+            sign => $self->{$type}->{sign}->to_hex->to_string,
+        };
+        if ($extra) {
+            $hr->{$type}->{extra} = $extra;
+        }
+    }
+
+    return Crypt::SPKI::ByteStream->new( bencode($hr) )->b64_encode('');
 }
 
 sub public {
